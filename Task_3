@@ -1,0 +1,31 @@
+--В Таблице distance_metric содержится информация о расстояниях между ВСП по транспортной дороге.
+--Ввиду одностороннего движения расстояния от A в B (от VSP в VSP_E) может отличаться от расстояния от B в A (от VSP_E в VSP). 
+--Необходимо написать sql запрос, рассчитывающий наименьшее, среднее и максимальное расстояния в разрезе GROUP_VSP(для разных групп ВСП считать отдельно),
+--VSP(от каждого ВСП в любую сторону (A -> B, B ->A))
+
+CREATE TABLE distance_metric(
+  VSP INT NOT NULL,
+  VAL INT NOT NULL,
+  VSP_E INT NOT NULL,
+  GROUP_VSP INT NOT NULL
+);
+
+
+INSERT INTO distance_metric VALUES (3254, 11, 4584, 1);
+INSERT INTO distance_metric VALUES (3254, 7, 8751, 1);
+INSERT INTO distance_metric VALUES (3584, 10, 4751, 2);
+INSERT INTO distance_metric VALUES (4584, 12, 3254, 1);
+INSERT INTO distance_metric VALUES (4584, 10, 8751, 1);
+INSERT INTO distance_metric VALUES (8751, 9, 4584, 1);
+INSERT INTO distance_metric VALUES (8751, 10, 3254, 1);
+
+
+SELECT
+    a.VSP AS VSP,
+    LEAST(a.VAL, b.VAL) AS MIN_VAL,
+    (a.VAL + b.VAL) / 2.0 AS AVG_VAL,
+    GREATEST(a.VAL, b.VAL) AS MAX_VAL,
+    a.GROUP_VSP AS GROUP_VSP
+FROM distance_metric AS a
+LEFT JOIN distance_metric AS b ON a.VSP = b.VSP_E
+GROUP BY a.GROUP_VSP, a.VSP, a.VAL, b.VAL;

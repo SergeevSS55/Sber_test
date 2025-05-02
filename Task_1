@@ -1,0 +1,40 @@
+-- Задача 1
+-- Задание: Напишите sql запрос, который будет переводить сумму транзакций в usd (ccy_code = 840) с учетом того, 
+-- что в таблице rates данные только за рабочие дни. Транзакции, совершенные в выходные, 
+-- пересчитываются по курсу последнего рабочего дня перед праздником/выходным. Результат: Клиент, дата, сумма операций в usd.
+
+CREATE TABLE Transactions
+(   
+  Client_id INTEGER NOT NULL, 
+  Report_date TEXT NOT NULL,
+  Txn_amount INTEGER NOT NULL
+);
+
+INSERT INTO Transactions VALUES (123, '2017-01-01', 50000);
+
+CREATE TABLE Rates
+(
+  Report_date TEXT NOT NULL,
+  Ccy_code INTEGER NOT NULL,
+  Ccy_rate REAL NOT NULL
+);
+
+INSERT INTO Rates VALUES ('2016-12-30', 840, 60.58);
+INSERT INTO Rates VALUES ('2017-01-09', 840, 61.01);
+
+SELECT Client_id, Report_date, sum_usd
+FROM (
+    SELECT 
+        t.Client_id, 
+        t.Report_date,
+        t.Txn_amount * r.Ccy_rate AS sum_usd,
+        (SELECT COUNT(*) 
+         FROM Rates r2 
+         WHERE r2.Report_date <= t.Report_date 
+         AND r2.Ccy_code = 840 
+         AND r2.Report_date >= r.Report_date) AS row_num
+    FROM Transactions t
+    JOIN Rates r ON r.Report_date <= t.Report_date
+    WHERE r.Ccy_code = 840
+) 
+WHERE row_num = 1;

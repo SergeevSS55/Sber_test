@@ -8,7 +8,7 @@ CREATE TABLE Transactions
 -- Вставка данных в Transactions
 INSERT INTO Transactions VALUES (123, '2017-01-01', 50000);
 
--- Создание таблицы Rates с типом DATE для даты
+
 CREATE TABLE Rates
 (
   Report_date DATE NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE Rates
 INSERT INTO Rates VALUES ('2016-12-30', 840, 60.58);
 INSERT INTO Rates VALUES ('2017-01-09', 840, 61.01);
 
--- Оптимизированный запрос с использованием оконной функции ROW_NUMBER()
+
 SELECT Client_id, Report_date, sum_usd
 FROM (
     SELECT 

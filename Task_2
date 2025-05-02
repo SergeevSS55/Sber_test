@@ -1,0 +1,61 @@
+--В таблице VSP_oper_data txn_type принимает значения debit, credit
+--Задание: напишите sql запрос, который для каждого клиента выводит сумму debit, credit операций и последнее посещенное VSP 
+--(ВСП – внутреннее структурное подразделение, офис банка) по месяцам. Результат представьте в виде: 
+
+CREATE TABLE VSP_oper_data (
+  Client_id INTEGER NOT NULL,
+  Report_date DATE NOT NULL,
+  VSP_Number INTEGER NOT NULL,
+  Txn_type TEXT NOT NULL,
+  Txn_amount INTEGER NOT NULL
+);
+
+INSERT INTO VSP_oper_data VALUES
+(1233455, '2017-05-02', 0123, 'debit', 10000);
+
+SELECT 
+    t.Client_id, 
+    t.Report_date,
+    t.Debit_amount,
+    t.Credit_amount,
+    t1.VSP_Number AS Last_VSP
+FROM (
+    SELECT 
+        client_id,
+        DATE_TRUNC('month', report_date) AS Report_date,
+        SUM(CASE WHEN txn_type = 'debit' THEN txn_amount ELSE 0 END) AS Debit_amount,
+        SUM(CASE WHEN txn_type = 'credit' THEN txn_amount ELSE 0 END) AS Credit_amount
+    FROM VSP_oper_data
+    GROUP BY client_id, DATE_TRUNC('month', report_date)
+) t
+LEFT JOIN LATERAL (
+    SELECT VSP_Number
+    FROM VSP_oper_data
+    WHERE client_id = t.client_id
+    AND report_date = (
+        SELECT MAX(report_date)
+        FROM VSP_oper_data
+        WHERE client_id = t.client_id
+        AND DATE_TRUNC('month', report_date) = t.Report_date
+    )
+    ORDER BY report_date DESC
+    LIMIT 1
+) t1 ON true;
+
+--Задание: напишите sql запрос, который для каждого клиента выведет долю debit операций клиента к debit операциям всех клиентов по месяцам. Результат в виде таблицы:
+
+WITH CTE AS (
+    SELECT 
+        client_id,
+        report_date,
+        SUM(CASE WHEN txn_type = 'debit' THEN 1.0 END) OVER (PARTITION BY client_id, DATE_TRUNC('month', report_date)) /
+        NULLIF(SUM(CASE WHEN txn_type = 'debit' THEN 1.0 END) OVER (PARTITION BY DATE_TRUNC('month', report_date)), 0) AS ratio,
+        ROW_NUMBER() OVER (PARTITION BY client_id, DATE_TRUNC('month', report_date) ORDER BY report_date DESC) AS rn
+    FROM VSP_oper_data
+)
+SELECT 
+    client_id,
+    report_date,
+    ratio
+FROM CTE
+WHERE rn = 1;

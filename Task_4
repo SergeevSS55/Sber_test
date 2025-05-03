@@ -1,0 +1,42 @@
+--Существует таблица присутствия/отсутствия сотрудника в рабочий день офиса в виде:
+--users_position, где – user_id – идентификатор сотрудника; user_position идентификатор позиции (1= присутствовал, 2 = отсутствовал) в календарную дату date_position
+--Необходимо вычислить непрерывный период (по date_position), как дату начала вхождения в позицию position_start и дату окончания вхождения в позицию position_end в рабочий день по каждому сотруднику и в разрезе user_position.
+--Период нахождения сотрудника в позиции считается непрерывным периодом, если увеличение дат позиции date_position  на один день проходит без смены позиции и не имеются разрывы дат date_position(не рабочие дни)
+--Сотрудник не может занимать две позиции в один день (базовое условие уникальности данных в таблице users_position)
+--Результат отсортировать по сотруднику и дате начала вхождения в непрерывный период и предоставить в виде: user_id, user_position, position_start, position_end
+
+CREATE TABLE users_position(
+  user_id INT NOT NULL,
+  user_position INT NOT NULL,
+  date_position DATE NOT NULL
+);
+
+INSERT INTO users_position VALUES (1, 1, '2019-01-01');
+INSERT INTO users_position VALUES (1, 1, '2019-01-02');
+INSERT INTO users_position VALUES (1, 2, '2019-01-03');
+INSERT INTO users_position VALUES (1, 2, '2019-01-04');
+INSERT INTO users_position VALUES (1, 1, '2019-01-05');
+INSERT INTO users_position VALUES (1, 1, '2019-01-06');
+INSERT INTO users_position VALUES (2, 1, '2019-01-01');
+INSERT INTO users_position VALUES (2, 1, '2019-01-02');
+INSERT INTO users_position VALUES (2, 1, '2019-01-03');
+INSERT INTO users_position VALUES (2, 2, '2019-01-04');
+INSERT INTO users_position VALUES (2, 2, '2019-01-05');
+INSERT INTO users_position VALUES (2, 2, '2019-01-08');
+INSERT INTO users_position VALUES (2, 2, '2019-01-10');
+
+SELECT user_id, user_position, MIN(date_position) AS dt_open, MAX(date_position) AS dt_close
+FROM (
+    SELECT tt.*, SUM(chng) OVER (PARTITION BY user_id, user_position ORDER BY date_position) AS rnk
+    FROM (
+        SELECT users_position.*,
+            CASE 
+                WHEN LAG(date_position) OVER (PARTITION BY user_id, user_position ORDER BY date_position) = date_position - 1 
+                THEN 0 
+                ELSE 1 
+            END AS chng
+        FROM users_position
+    ) tt
+) tt
+GROUP BY user_id, user_position, rnk
+ORDER BY user_position, dt_open
